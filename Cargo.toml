@@ -1,0 +1,43 @@
+[package]
+name = "quality_draw"
+version = "1.0.0"
+edition = "2021"
+authors = ["宁夏特检院"]
+description = "宁夏特检院质量监督检查抽签程序"
+
+[dependencies]
+# GUI框架
+eframe = "0.30"
+
+# 序列化
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# 随机数
+rand = "0.8"
+
+# 时间处理
+chrono = { version = "0.4", features = ["serde"] }
+
+# UUID生成
+uuid = { version = "1.0", features = ["v4", "serde"] }
+
+# Excel导出
+rust_xlsxwriter = "0.80"
+
+# 获取系统目录
+dirs = "5.0"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
+
+[[bin]]
+name = "quality_draw"
+path = "src/main.rs"
+
+[build-dependencies]
+winres = "0.1.12"
