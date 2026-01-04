@@ -1,0 +1,8 @@
+# Windows MSVC 静态链接配置
+# 这使得生成的exe不依赖Visual C++ Runtime，可以独立运行
+
+[target.x86_64-pc-windows-msvc]
+rustflags = ["-C", "target-feature=+crt-static"]
+
+[target.i686-pc-windows-msvc]
+rustflags = ["-C", "target-feature=+crt-static"]

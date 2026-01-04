@@ -12,9 +12,8 @@ pub struct DataStore {
 impl DataStore {
     /// 创建数据存储管理器
     pub fn new() -> Self {
-        // 获取可执行文件所在目录
-        let exe_path = std::env::current_exe().unwrap_or_default();
-        let data_dir = exe_path.parent().unwrap_or(&PathBuf::from(".")).join("data");
+        // 获取可执行文件所在目录（使用多种回退方式确保可靠性）
+        let data_dir = Self::get_data_dir();
         
         // 确保数据目录存在
         if !data_dir.exists() {
@@ -22,6 +21,31 @@ impl DataStore {
         }
         
         Self { data_dir }
+    }
+    
+    /// 获取数据存储目录（exe同目录下的data文件夹）
+    fn get_data_dir() -> PathBuf {
+        // 方法1：使用current_exe获取可执行文件路径
+        if let Ok(exe_path) = std::env::current_exe() {
+            if let Some(parent) = exe_path.parent() {
+                let data_dir = parent.join("data");
+                // 测试是否可以创建/访问此目录
+                if fs::create_dir_all(&data_dir).is_ok() {
+                    return data_dir;
+                }
+            }
+        }
+        
+        // 方法2：使用当前工作目录
+        if let Ok(cwd) = std::env::current_dir() {
+            let data_dir = cwd.join("data");
+            if fs::create_dir_all(&data_dir).is_ok() {
+                return data_dir;
+            }
+        }
+        
+        // 方法3：使用相对路径作为最后回退
+        PathBuf::from("data")
     }
     
     /// 获取部门数据文件路径

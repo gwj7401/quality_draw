@@ -67,11 +67,21 @@ impl AnimationState {
         let mut rng = rand::thread_rng();
         shuffled.shuffle(&mut rng);
         
+        // 根据候选人数量动态调整速度
+        // 目标：无论人数多少，转盘都流畅
+        // 速度 = 候选人数量 * 每秒圈数
+        let candidate_count = shuffled.len() as f32;
+        let rotations_per_second = 3.0; // 每秒转3圈
+        let calculated_speed = candidate_count * rotations_per_second;
+        
+        // 限制最低速度为30，最高速度为80（确保流畅）
+        let speed = calculated_speed.clamp(30.0, 80.0);
+        
         self.candidates = shuffled;
         self.phase = AnimationPhase::Rolling;
         self.scroll_position = 0.0;
-        self.scroll_speed = 25.0;  // 初始快速滚动
-        self.initial_speed = 25.0;
+        self.scroll_speed = speed;
+        self.initial_speed = speed;
         self.last_update = Instant::now();
         self.final_result = None;
         self.slowdown_start = None;

@@ -17,6 +17,16 @@ pub struct SettingsPanel {
     /// 新增部门表单
     pub new_dept_name: String,
     pub new_dept_type: DepartmentType,
+    /// 错误提示消息
+    pub error_message: Option<String>,
+    
+    // --- 搜索和筛选状态 ---
+    /// 搜索文本（姓名）
+    pub search_text: String,
+    /// 部门筛选
+    pub filter_dept: Option<String>,
+    /// 专业筛选
+    pub filter_specialty: Option<SpecialtyType>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -35,6 +45,10 @@ impl Default for SettingsPanel {
             new_specialist_type: SpecialtyType::Pressure,
             new_dept_name: String::new(),
             new_dept_type: DepartmentType::Comprehensive,
+            error_message: None,
+            search_text: String::new(),
+            filter_dept: None,
+            filter_specialty: None,
         }
     }
 }
@@ -79,6 +93,10 @@ impl SettingsPanel {
                             &mut self.new_specialist_name,
                             &mut self.new_specialist_dept,
                             &mut self.new_specialist_type,
+                            &mut self.error_message,
+                            &mut self.search_text,
+                            &mut self.filter_dept,
+                            &mut self.filter_specialty,
                             specialists,
                             departments,
                             store,
@@ -105,6 +123,10 @@ impl SettingsPanel {
         new_name: &mut String,
         new_dept: &mut String,
         new_type: &mut SpecialtyType,
+        error_message: &mut Option<String>,
+        search_text: &mut String,
+        filter_dept: &mut Option<String>,
+        filter_specialty: &mut Option<SpecialtyType>,
         specialists: &mut Vec<QualitySpecialist>,
         departments: &[Department],
         store: &DataStore,
@@ -144,27 +166,133 @@ impl SettingsPanel {
                 
                 if ui.button("➕ 添加").clicked() {
                     if !new_name.trim().is_empty() && !new_dept.is_empty() {
-                        let new_id = uuid::Uuid::new_v4().to_string();
-                        specialists.push(QualitySpecialist::new(
-                            new_id,
-                            new_name.trim(),
-                            new_dept.as_str(),
-                            *new_type,
-                        ));
-                        store.save_specialists(specialists);
-                        new_name.clear();
+                        // 检查是否存在重复：同一部门、同一姓名、同一专业
+                        let name_trimmed = new_name.trim();
+                        let is_duplicate = specialists.iter().any(|s| {
+                            s.name == name_trimmed 
+                                && s.department_id == *new_dept 
+                                && s.specialty == *new_type
+                        });
+                        
+                        if is_duplicate {
+                            // 设置错误消息
+                            *error_message = Some(format!(
+                                "⚠ 重复添加：{} 在该部门的{}专业已存在！",
+                                name_trimmed,
+                                new_type.display_name()
+                            ));
+                        } else {
+                            let new_id = uuid::Uuid::new_v4().to_string();
+                            specialists.push(QualitySpecialist::new(
+                                new_id,
+                                name_trimmed,
+                                new_dept.as_str(),
+                                *new_type,
+                            ));
+                            store.save_specialists(specialists);
+                            new_name.clear();
+                            // 清除错误消息
+                            *error_message = None;
+                        }
                     }
                 }
             });
+            
+            // 显示错误消息
+            let mut should_clear_error = false;
+            if let Some(msg) = error_message.as_ref() {
+                ui.add_space(5.0);
+                ui.horizontal(|ui| {
+                    ui.label(egui::RichText::new(msg.as_str()).color(egui::Color32::RED).strong());
+                    if ui.small_button("✖").clicked() {
+                        should_clear_error = true;
+                    }
+                });
+            }
+            if should_clear_error {
+                *error_message = None;
+            }
+        });
+        
+        ui.separator();
+        
+        // 筛选工具栏
+        ui.horizontal(|ui| {
+            ui.label("🔍 搜索:");
+            ui.text_edit_singleline(search_text);
+            
+            ui.label("筛选:");
+            
+            // 部门筛选
+            egui::ComboBox::from_id_salt("filter_dept")
+                .selected_text(
+                    filter_dept.as_ref()
+                        .and_then(|id| departments.iter().find(|d| &d.id == id))
+                        .map(|d| d.name.as_str())
+                        .unwrap_or("所有部门")
+                )
+                .show_ui(ui, |ui| {
+                    ui.selectable_value(filter_dept, None, "所有部门");
+                    for dept in departments {
+                        ui.selectable_value(
+                            filter_dept,
+                            Some(dept.id.clone()),
+                            &dept.name,
+                        );
+                    }
+                });
+                
+            // 专业筛选
+            egui::ComboBox::from_id_salt("filter_specialty")
+                .selected_text(
+                    filter_specialty.as_ref()
+                        .map(|s| s.display_name())
+                        .unwrap_or("所有专业")
+                )
+                .show_ui(ui, |ui| {
+                    ui.selectable_value(filter_specialty, None, "所有专业");
+                    ui.selectable_value(filter_specialty, Some(SpecialtyType::Pressure), "承压类");
+                    ui.selectable_value(filter_specialty, Some(SpecialtyType::Mechanical), "机电类");
+                });
+                
+            if ui.button("❌ 重置").clicked() {
+                search_text.clear();
+                *filter_dept = None;
+                *filter_specialty = None;
+            }
         });
         
         ui.separator();
         
         // 专责列表
-        ui.heading(format!("专责列表 (共{}人)", specialists.len()));
         
-        // 创建按部门排序的索引列表
-        let mut sorted_indices: Vec<usize> = (0..specialists.len()).collect();
+        // 创建按部门排序并在筛选后的索引列表
+        let mut sorted_indices: Vec<usize> = specialists.iter()
+            .enumerate()
+            .filter(|(_, s)| {
+                // 姓名筛选
+                if !search_text.is_empty() && !s.name.contains(search_text.as_str()) {
+                    return false;
+                }
+                // 部门筛选
+                if let Some(dept_id) = filter_dept {
+                    if &s.department_id != dept_id {
+                        return false;
+                    }
+                }
+                // 专业筛选
+                if let Some(specialty) = filter_specialty {
+                    if &s.specialty != specialty {
+                        return false;
+                    }
+                }
+                true
+            })
+            .map(|(i, _)| i)
+            .collect();
+            
+        ui.heading(format!("专责列表 (显示 {} / 共 {} 人)", sorted_indices.len(), specialists.len()));
+
         sorted_indices.sort_by(|&a, &b| {
             let dept_a = departments.iter()
                 .find(|d| d.id == specialists[a].department_id)

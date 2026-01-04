@@ -44,6 +44,10 @@ pub struct MainPanel {
     pub is_drawing: bool,
     /// 当前正在抽取的类型
     pub current_drawing: Option<CurrentDrawing>,
+    /// 本轮已抽中的承压部门列表 (被检部门ID, 抽中部门ID)
+    pub current_round_pressure_depts: Vec<(String, String)>,
+    /// 本轮已抽中的机电部门列表 (被检部门ID, 抽中部门ID)
+    pub current_round_mechanical_depts: Vec<(String, String)>,
 }
 
 impl Default for MainPanel {
@@ -57,6 +61,8 @@ impl Default for MainPanel {
             status_message: "请选择被检查部门，然后点击开始抽签".to_string(),
             is_drawing: false,
             current_drawing: None,
+            current_round_pressure_depts: Vec::new(),
+            current_round_mechanical_depts: Vec::new(),
         }
     }
 }
@@ -86,45 +92,42 @@ impl MainPanel {
         self.status_message = "减速中...".to_string();
     }
     
-    /// 更新动画并检查完成状态
+    /// 更新动画并检查完成状态（抽取部门模式）
     pub fn update(
         &mut self,
-        specialists: &[QualitySpecialist],
+        _specialists: &[QualitySpecialist],
         departments: &[Department],
-        records: &[DrawRecord],
+        _records: &[DrawRecord],
         store: &DataStore,
     ) -> Vec<DrawRecord> {
-        let mut new_records = Vec::new();
-        
         // 更新动画
         self.pressure_animation.update();
         self.mechanical_animation.update();
         
+        let mut new_records = Vec::new();
+        
         // 检查承压动画是否完成
         if self.pressure_animation.phase == AnimationPhase::Stopped && self.pressure_result.is_none() {
-            if let Some(name) = &self.pressure_animation.final_result {
-                // 找到对应的专责
-                if let Some(specialist) = specialists.iter().find(|s| &s.name == name) {
-                    let dept_name = departments.iter()
-                        .find(|d| d.id == specialist.department_id)
-                        .map(|d| d.name.clone())
-                        .unwrap_or_else(|| "未知".to_string());
-                    
-                    self.pressure_result = Some((name.clone(), dept_name.clone()));
-                    
-                    // 创建记录
-                    if let Some(target_dept_id) = &self.selected_department_id {
-                        if let Some(target_dept) = departments.iter().find(|d| &d.id == target_dept_id) {
+            if let Some(dept_name) = &self.pressure_animation.final_result {
+                // 抽取的是部门名称
+                self.pressure_result = Some((dept_name.clone(), "承压类".to_string()));
+                
+                // 保存到本轮已抽中列表和历史记录
+                if let Some(target_id) = &self.selected_department_id {
+                    if let Some(target_dept) = departments.iter().find(|d| &d.id == target_id) {
+                        if let Some(selected_dept) = departments.iter().find(|d| &d.name == dept_name) {
+                            // 保存到本轮列表
+                            self.current_round_pressure_depts.push((target_id.clone(), selected_dept.id.clone()));
+                            // 创建历史记录
                             let record = DrawRecord::new(
-                                target_dept_id,
-                                &target_dept.name,
+                                target_id.clone(),
+                                target_dept.name.clone(),
                                 SpecialtyType::Pressure,
-                                &specialist.id,
-                                &specialist.name,
-                                &specialist.department_id,
-                                dept_name,
+                                selected_dept.id.clone(),  // 用部门ID代替人员ID
+                                selected_dept.name.clone(), // 用部门名称代替人员名称
+                                selected_dept.id.clone(),
+                                selected_dept.name.clone(),
                             );
-                            store.add_record(record.clone());
                             new_records.push(record);
                         }
                     }
@@ -134,32 +137,36 @@ impl MainPanel {
         
         // 检查机电动画是否完成
         if self.mechanical_animation.phase == AnimationPhase::Stopped && self.mechanical_result.is_none() {
-            if let Some(name) = &self.mechanical_animation.final_result {
-                if let Some(specialist) = specialists.iter().find(|s| &s.name == name) {
-                    let dept_name = departments.iter()
-                        .find(|d| d.id == specialist.department_id)
-                        .map(|d| d.name.clone())
-                        .unwrap_or_else(|| "未知".to_string());
-                    
-                    self.mechanical_result = Some((name.clone(), dept_name.clone()));
-                    
-                    if let Some(target_dept_id) = &self.selected_department_id {
-                        if let Some(target_dept) = departments.iter().find(|d| &d.id == target_dept_id) {
+            if let Some(dept_name) = &self.mechanical_animation.final_result {
+                // 抽取的是部门名称
+                self.mechanical_result = Some((dept_name.clone(), "机电类".to_string()));
+                
+                // 保存到本轮已抽中列表和历史记录
+                if let Some(target_id) = &self.selected_department_id {
+                    if let Some(target_dept) = departments.iter().find(|d| &d.id == target_id) {
+                        if let Some(selected_dept) = departments.iter().find(|d| &d.name == dept_name) {
+                            // 保存到本轮列表
+                            self.current_round_mechanical_depts.push((target_id.clone(), selected_dept.id.clone()));
+                            // 创建历史记录
                             let record = DrawRecord::new(
-                                target_dept_id,
-                                &target_dept.name,
+                                target_id.clone(),
+                                target_dept.name.clone(),
                                 SpecialtyType::Mechanical,
-                                &specialist.id,
-                                &specialist.name,
-                                &specialist.department_id,
-                                dept_name,
+                                selected_dept.id.clone(),
+                                selected_dept.name.clone(),
+                                selected_dept.id.clone(),
+                                selected_dept.name.clone(),
                             );
-                            store.add_record(record.clone());
                             new_records.push(record);
                         }
                     }
                 }
             }
+        }
+        
+        // 保存新记录到存储
+        for record in &new_records {
+            store.add_record(record.clone());
         }
         
         // 检查是否全部完成
@@ -183,10 +190,25 @@ impl MainPanel {
         ui.label(egui::RichText::new("━━ 综合类（承压+机电）━━").color(egui::Color32::from_rgb(100, 180, 100)));
         for dept in departments.iter().filter(|d| d.department_type == DepartmentType::Comprehensive) {
             let is_selected = self.selected_department_id.as_ref() == Some(&dept.id);
-            if ui.selectable_label(is_selected, &dept.name).clicked() {
+            // 检查是否已抽过（综合类需要承压和机电都抽过）
+            let drew_pressure = self.current_round_pressure_depts.iter().any(|(t, _)| t == &dept.id);
+            let drew_mechanical = self.current_round_mechanical_depts.iter().any(|(t, _)| t == &dept.id);
+            let fully_done = drew_pressure && drew_mechanical;
+            
+            let label_text = if fully_done {
+                egui::RichText::new(format!("✓ {}", dept.name)).color(egui::Color32::from_rgb(100, 200, 100))
+            } else if drew_pressure || drew_mechanical {
+                egui::RichText::new(format!("◐ {}", dept.name)).color(egui::Color32::from_rgb(200, 200, 100))
+            } else {
+                egui::RichText::new(&dept.name)
+            };
+            
+            if ui.selectable_label(is_selected, label_text).clicked() {
                 self.selected_department_id = Some(dept.id.clone());
                 self.pressure_result = None;
                 self.mechanical_result = None;
+                self.pressure_animation = AnimationState::default();
+                self.mechanical_animation = AnimationState::default();
             }
         }
         
@@ -196,10 +218,20 @@ impl MainPanel {
         ui.label(egui::RichText::new("━━ 承压类 ━━").color(egui::Color32::from_rgb(200, 100, 100)));
         for dept in departments.iter().filter(|d| d.department_type == DepartmentType::Pressure) {
             let is_selected = self.selected_department_id.as_ref() == Some(&dept.id);
-            if ui.selectable_label(is_selected, &dept.name).clicked() {
+            let is_done = self.current_round_pressure_depts.iter().any(|(t, _)| t == &dept.id);
+            
+            let label_text = if is_done {
+                egui::RichText::new(format!("✓ {}", dept.name)).color(egui::Color32::from_rgb(100, 200, 100))
+            } else {
+                egui::RichText::new(&dept.name)
+            };
+            
+            if ui.selectable_label(is_selected, label_text).clicked() {
                 self.selected_department_id = Some(dept.id.clone());
                 self.pressure_result = None;
                 self.mechanical_result = None;
+                self.pressure_animation = AnimationState::default();
+                self.mechanical_animation = AnimationState::default();
             }
         }
         
@@ -209,10 +241,20 @@ impl MainPanel {
         ui.label(egui::RichText::new("━━ 机电类 ━━").color(egui::Color32::from_rgb(100, 150, 200)));
         for dept in departments.iter().filter(|d| d.department_type == DepartmentType::Mechanical) {
             let is_selected = self.selected_department_id.as_ref() == Some(&dept.id);
-            if ui.selectable_label(is_selected, &dept.name).clicked() {
+            let is_done = self.current_round_mechanical_depts.iter().any(|(t, _)| t == &dept.id);
+            
+            let label_text = if is_done {
+                egui::RichText::new(format!("✓ {}", dept.name)).color(egui::Color32::from_rgb(100, 200, 100))
+            } else {
+                egui::RichText::new(&dept.name)
+            };
+            
+            if ui.selectable_label(is_selected, label_text).clicked() {
                 self.selected_department_id = Some(dept.id.clone());
                 self.pressure_result = None;
                 self.mechanical_result = None;
+                self.pressure_animation = AnimationState::default();
+                self.mechanical_animation = AnimationState::default();
             }
         }
     }
@@ -328,12 +370,22 @@ impl MainPanel {
                 // 中心发光区
                 painter.circle_filled(center, wheel_radius * 0.7, egui::Color32::from_black_alpha(100));
                 
-                // 名字
+                // 名字 - 根据文字长度动态调整字体大小
+                let name_len = name.chars().count();
+                let font_size = if name_len <= 4 {
+                    40.0
+                } else if name_len <= 6 {
+                    32.0
+                } else if name_len <= 8 {
+                    26.0
+                } else {
+                    20.0
+                };
                 painter.text(
                     center,
                     egui::Align2::CENTER_CENTER,
                     name,
-                    egui::FontId::proportional(40.0),
+                    egui::FontId::proportional(font_size),
                     egui::Color32::from_rgb(255, 230, 100),
                 );
                 
@@ -564,12 +616,12 @@ impl MainPanel {
         });
     }
 
-    /// 开始抽签
+    /// 开始抽签（抽取部门而非人员）
     pub fn start_draw(
         &mut self,
-        specialists: &[QualitySpecialist],
+        _specialists: &[QualitySpecialist],
         departments: &[Department],
-        records: &[DrawRecord],
+        _records: &[DrawRecord],
     ) {
         let dept_id = match &self.selected_department_id {
             Some(id) => id.clone(),
@@ -584,6 +636,28 @@ impl MainPanel {
             None => return,
         };
         
+        // 检查当前被检部门是否在本轮已经抽过（防止重复抽签）
+        let already_drew_pressure = self.current_round_pressure_depts.iter()
+            .any(|(target, _)| target == &dept_id);
+        let already_drew_mechanical = self.current_round_mechanical_depts.iter()
+            .any(|(target, _)| target == &dept_id);
+        
+        match draw_type {
+            DrawType::PressureOnly if already_drew_pressure => {
+                self.status_message = "该部门本轮已抽过承压类，请点击'开始新一轮'重新开始".to_string();
+                return;
+            }
+            DrawType::MechanicalOnly if already_drew_mechanical => {
+                self.status_message = "该部门本轮已抽过机电类，请点击'开始新一轮'重新开始".to_string();
+                return;
+            }
+            DrawType::Both if already_drew_pressure && already_drew_mechanical => {
+                self.status_message = "该部门本轮已抽过，请点击'开始新一轮'重新开始".to_string();
+                return;
+            }
+            _ => {}
+        }
+        
         // 重置结果和动画状态
         self.pressure_result = None;
         self.mechanical_result = None;
@@ -591,101 +665,116 @@ impl MainPanel {
         self.mechanical_animation = AnimationState::default();
         self.is_drawing = true;
 
-        // 辅助函数：根据部门ID和专业类型查找上次中签者ID
-        let get_last_selected_id = |target_dept_id: &str, specialty: SpecialtyType| -> Option<&str> {
-            records.iter()
-                .rev()
-                .find(|r| r.target_department_id == target_dept_id && r.specialty_type == specialty)
-                .map(|r| r.selected_specialist_id.as_str())
+        // 获取承压类可选部门（5个分院 + 承压一部 + 承压二部 + 综合检验站）
+        // 需要排除：1.被检查的部门 2.本轮已被抽中的部门 3.交叉回避的部门
+        let get_pressure_depts = |current_round: &Vec<(String, String)>| -> Vec<String> {
+            // 本轮已被抽中作为承压检查员的部门ID
+            let already_selected: Vec<&String> = current_round.iter().map(|(_, selected)| selected).collect();
+            
+            // 交叉回避：如果当前被检部门(dept_id)的人曾被派去检查其他部门，那些部门不能来检查这个部门
+            // 即：找到所有 "被检部门=某部门 且 抽中部门=dept_id" 的记录，这些"某部门"需要回避
+            let cross_avoidance: Vec<&String> = current_round.iter()
+                .filter(|(_, selected)| selected == &dept_id)
+                .map(|(target, _)| target)
+                .collect();
+            
+            departments.iter()
+                .filter(|d| {
+                    // 包含：综合类（分院）和承压类部门
+                    (d.department_type == DepartmentType::Comprehensive || 
+                     d.department_type == DepartmentType::Pressure)
+                    // 排除被检查的部门
+                    && d.id != dept_id
+                    // 排除本轮已被抽中的部门
+                    && !already_selected.contains(&&d.id)
+                    // 排除交叉回避的部门
+                    && !cross_avoidance.contains(&&d.id)
+                })
+                .map(|d| d.name.clone())
+                .collect()
         };
 
-        // 核心逻辑：获取候选人名单（处理单人强制排班的情况）
-        let get_candidates_logic = |specialty: SpecialtyType, type_name: &str| -> (Vec<String>, String) {
-            // 1. 获取该专业所有符合基本条件（部门回避）的人
-            // 传入 None 作为 last_id 来获取全量合法名单
-            let all_candidates = DrawEngine::get_rolling_names(specialists, &dept_id, specialty, None);
+        // 获取机电类可选部门（5个分院 + 机电一部 + 机电二部）
+        // 需要排除：1.被检查的部门 2.本轮已被抽中的部门 3.交叉回避的部门
+        let get_mechanical_depts = |current_round: &Vec<(String, String)>| -> Vec<String> {
+            // 本轮已被抽中作为机电检查员的部门ID
+            let already_selected: Vec<&String> = current_round.iter().map(|(_, selected)| selected).collect();
             
-            if all_candidates.is_empty() {
-                return (Vec::new(), format!("没有可抽取的{}人员！", type_name));
-            }
-
-            // 2. 如果只有1个人，强制选中，忽略连续回避
-            if all_candidates.len() == 1 {
-                return (all_candidates, format!("正在抽取{}人员 (唯一候选)...", type_name));
-            }
-
-            // 3. 如果有多人，执行连续回避
-            let last_id = get_last_selected_id(&dept_id, specialty);
-            let filtered_candidates = DrawEngine::get_rolling_names(specialists, &dept_id, specialty, last_id);
+            // 交叉回避：如果当前被检部门的人曾被派去检查其他部门，那些部门不能来检查这个部门
+            let cross_avoidance: Vec<&String> = current_round.iter()
+                .filter(|(_, selected)| selected == &dept_id)
+                .map(|(target, _)| target)
+                .collect();
             
-            if filtered_candidates.is_empty() {
-                // 照理说不该发生（总量>1，排除1个后应该还有），除非数据异常，这里做兜底
-                return (all_candidates, format!("正在抽取{}人员 (候选重置)...", type_name));
-            }
-
-            (filtered_candidates, format!("正在抽取{}人员...", type_name))
+            departments.iter()
+                .filter(|d| {
+                    // 包含：综合类（分院）和机电类部门
+                    (d.department_type == DepartmentType::Comprehensive || 
+                     d.department_type == DepartmentType::Mechanical)
+                    // 排除被检查的部门
+                    && d.id != dept_id
+                    // 排除本轮已被抽中的部门
+                    && !already_selected.contains(&&d.id)
+                    // 排除交叉回避的部门
+                    && !cross_avoidance.contains(&&d.id)
+                })
+                .map(|d| d.name.clone())
+                .collect()
         };
         
         match draw_type {
             DrawType::PressureOnly => {
-                let (names, msg) = get_candidates_logic(SpecialtyType::Pressure, "承压类");
-                if names.is_empty() {
-                    self.status_message = msg;
+                let depts = get_pressure_depts(&self.current_round_pressure_depts);
+                if depts.is_empty() {
+                    self.status_message = "没有可抽取的承压类部门！".to_string();
                     self.is_drawing = false;
                     return;
                 }
-                self.pressure_animation.start(names);
+                self.pressure_animation.start(depts);
                 self.current_drawing = Some(CurrentDrawing::Pressure);
-                self.status_message = msg;
+                self.status_message = "正在抽取承压类部门...".to_string();
             }
             DrawType::MechanicalOnly => {
-                let (names, msg) = get_candidates_logic(SpecialtyType::Mechanical, "机电类");
-                if names.is_empty() {
-                    self.status_message = msg;
+                let depts = get_mechanical_depts(&self.current_round_mechanical_depts);
+                if depts.is_empty() {
+                    self.status_message = "没有可抽取的机电类部门！".to_string();
                     self.is_drawing = false;
                     return;
                 }
-                self.mechanical_animation.start(names);
+                self.mechanical_animation.start(depts);
                 self.current_drawing = Some(CurrentDrawing::Mechanical);
-                self.status_message = msg;
+                self.status_message = "正在抽取机电类部门...".to_string();
             }
             DrawType::Both => {
-                // 综合类：同时启动两个动画
-                let (p_names, _p_msg) = get_candidates_logic(SpecialtyType::Pressure, "承压类");
-                let (m_names, _m_msg) = get_candidates_logic(SpecialtyType::Mechanical, "机电类");
+                // 综合类：同时抽取承压和机电部门（两个转盘独立）
+                let p_depts = get_pressure_depts(&self.current_round_pressure_depts);
+                let m_depts = get_mechanical_depts(&self.current_round_mechanical_depts);
                 
-                if p_names.is_empty() && m_names.is_empty() {
-                    self.status_message = "没有可抽取的人员！".to_string();
+                if p_depts.is_empty() && m_depts.is_empty() {
+                    self.status_message = "没有可抽取的部门！".to_string();
                     self.is_drawing = false;
                     return;
                 }
                 
-                if !p_names.is_empty() {
-                    self.pressure_animation.start(p_names.clone());
+                if !p_depts.is_empty() {
+                    self.pressure_animation.start(p_depts);
                 }
-                if !m_names.is_empty() {
-                    self.mechanical_animation.start(m_names.clone());
+                if !m_depts.is_empty() {
+                    self.mechanical_animation.start(m_depts);
                 }
                 self.current_drawing = None; // 表示同时抽取
-                
-                // 组合消息
-                let status = if (p_names.len() == 1 && !p_names.is_empty()) || (m_names.len() == 1 && !m_names.is_empty()) {
-                    "正在抽取... (包含唯一候选岗位)".to_string()
-                } else {
-                    "正在抽取...".to_string()
-                };
-                self.status_message = status;
+                self.status_message = "正在抽取部门...".to_string();
             }
         }
     }
     
-    /// 显示抽签结果
+    /// 显示抽签结果（部门模式）
     pub fn show_results(&self, ui: &mut egui::Ui, departments: &[Department]) {
         if self.pressure_result.is_none() && self.mechanical_result.is_none() {
             return;
         }
         
-        let dept_name = self.selected_department_id.as_ref()
+        let target_dept_name = self.selected_department_id.as_ref()
             .and_then(|id| departments.iter().find(|d| &d.id == id))
             .map(|d| d.name.as_str())
             .unwrap_or("未知");
@@ -693,7 +782,7 @@ impl MainPanel {
         let draw_type = self.get_draw_type(departments);
         
         ui.group(|ui| {
-            ui.heading(format!("📋 {} 抽签结果", dept_name));
+            ui.heading(format!("📋 {} 抽签结果", target_dept_name));
             ui.separator();
             
             // 根据 DrawType 过滤显示
@@ -701,27 +790,25 @@ impl MainPanel {
             let show_mechanical = matches!(draw_type, Some(DrawType::MechanicalOnly) | Some(DrawType::Both));
             
             if show_pressure {
-                if let Some((name, from_dept)) = &self.pressure_result {
+                if let Some((dept_name, _)) = &self.pressure_result {
                     ui.horizontal(|ui| {
-                        ui.label("承压类专责：");
-                        ui.label(egui::RichText::new(name)
+                        ui.label("承压类质量专责部门：");
+                        ui.label(egui::RichText::new(dept_name)
                             .color(egui::Color32::from_rgb(50, 150, 250))
                             .strong()
                             .size(16.0));
-                        ui.label(format!("（{}）", from_dept));
                     });
                 }
             }
             
             if show_mechanical {
-                if let Some((name, from_dept)) = &self.mechanical_result {
+                if let Some((dept_name, _)) = &self.mechanical_result {
                     ui.horizontal(|ui| {
-                        ui.label("机电类专责：");
-                        ui.label(egui::RichText::new(name)
+                        ui.label("机电类质量专责部门：");
+                        ui.label(egui::RichText::new(dept_name)
                             .color(egui::Color32::from_rgb(50, 200, 100))
                             .strong()
                             .size(16.0));
-                        ui.label(format!("（{}）", from_dept));
                     });
                 }
             }

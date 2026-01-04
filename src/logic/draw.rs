@@ -15,6 +15,8 @@ impl DrawEngine {
     /// - `target_department_id`: 被检查部门ID（需要规避的部门）
     /// - `specialty_type`: 需要抽取的专责类型
     /// - `last_selected_id`: 上一次抽中的人员ID（需要规避连续抽取）
+    /// - `current_round_selected_ids`: 本轮已抽中的人员ID列表
+    /// - `cross_avoidance_dept_ids`: 需要交叉回避的部门ID列表（这些部门的专责不能参与）
     /// 
     /// # 返回
     /// 符合条件的候选人列表
@@ -24,6 +26,8 @@ impl DrawEngine {
         target_department_id: &str,
         specialty_type: SpecialtyType,
         last_selected_id: Option<&str>,
+        current_round_selected_ids: &[String],
+        cross_avoidance_dept_ids: &[String],
     ) -> Vec<&'a QualitySpecialist> {
         specialists
             .iter()
@@ -32,8 +36,12 @@ impl DrawEngine {
                 s.specialty == specialty_type
                 // 2. 不能是被检查部门的人
                 && s.department_id != target_department_id
-                // 3. 不能是上次抽中的人
+                // 3. 不能是上次抽中的人（连续回避）
                 && last_selected_id.map_or(true, |id| s.id != id)
+                // 4. 不能是本轮已抽中的人
+                && !current_round_selected_ids.contains(&s.id)
+                // 5. 不能是需要交叉回避的部门的人
+                && !cross_avoidance_dept_ids.contains(&s.department_id)
             })
             .collect()
     }
@@ -55,6 +63,7 @@ impl DrawEngine {
     /// - `target_department`: 被检查部门
     /// - `specialty_type`: 需要抽取的专责类型
     /// - `records`: 历史抽签记录（用于查找上次抽中的人）
+    /// - `current_round_selected_ids`: 本轮已抽中的人员ID列表
     /// 
     /// # 返回
     /// 抽中的人员及其所属部门名称
@@ -64,6 +73,7 @@ impl DrawEngine {
         target_department: &Department,
         specialty_type: SpecialtyType,
         records: &[DrawRecord],
+        current_round_selected_ids: &[String],
     ) -> Option<(QualitySpecialist, String)> {
         // 查找上次抽取该部门该类型时抽中的人
         let last_selected_id = records
@@ -75,6 +85,19 @@ impl DrawEngine {
             })
             .map(|r| r.selected_specialist_id.as_str());
         
+        // 计算交叉回避的部门列表
+        // 逻辑：如果目标部门(A)被其他部门(B)的某专责检查过，那么A的同类型专责也不能去检查B
+        // 即：找到所有 "抽中的人所属部门是target_department" 的记录，这些记录的被检部门需要回避
+        let cross_avoidance_dept_ids: Vec<String> = records
+            .iter()
+            .filter(|r| {
+                // 找到本类型中，抽中人员来自目标部门的记录
+                r.specialty_type == specialty_type
+                && r.selected_from_department_id == target_department.id
+            })
+            .map(|r| r.target_department_id.clone())
+            .collect();
+        
         // 获取候选人
         let candidates = Self::get_candidates(
             specialists,
@@ -82,6 +105,8 @@ impl DrawEngine {
             &target_department.id,
             specialty_type,
             last_selected_id,
+            current_round_selected_ids,
+            &cross_avoidance_dept_ids,
         );
         
         // 随机抽取
@@ -105,6 +130,8 @@ impl DrawEngine {
         target_department_id: &str,
         specialty_type: SpecialtyType,
         last_selected_id: Option<&str>,
+        current_round_selected_ids: &[String],
+        cross_avoidance_dept_ids: &[String],
     ) -> Vec<String> {
         specialists
             .iter()
@@ -115,6 +142,10 @@ impl DrawEngine {
                 && s.department_id != target_department_id
                 // 3. 不能是上次抽中的人
                 && last_selected_id.map_or(true, |id| s.id != id)
+                // 4. 不能是本轮已抽中的人
+                && !current_round_selected_ids.contains(&s.id)
+                // 5. 不能是需要交叉回避的部门的人
+                && !cross_avoidance_dept_ids.contains(&s.department_id)
             })
             .map(|s| s.name.clone())
             .collect()
@@ -148,6 +179,8 @@ mod tests {
             "szs",
             SpecialtyType::Pressure,
             None,
+            &[],
+            &[],
         );
         
         assert!(!candidates.iter().any(|s| s.name == "张三"));
@@ -167,6 +200,8 @@ mod tests {
             "szs",
             SpecialtyType::Pressure,
             Some("2"), // 李四的ID
+            &[],
+            &[],
         );
         
         assert!(!candidates.iter().any(|s| s.name == "李四"));
@@ -185,6 +220,8 @@ mod tests {
             "szs",
             SpecialtyType::Mechanical,
             None,
+            &[],
+            &[],
         );
         
         // 只应该有机电类的人，且不包含石嘴山分院的赵六

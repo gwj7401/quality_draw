@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>宁夏特检院质量监督检查抽签规则</title>
+    <style>
+        :root {
+            --primary-color: #1a73e8;
+            --primary-light: #e8f0fe;
+            --secondary-color: #34a853;
+            --warning-color: #ea8600;
+            --danger-color: #ea4335;
+            --text-primary: #202124;
+            --text-secondary: #5f6368;
+            --border-color: #dadce0;
+            --bg-light: #f8f9fa;
+            --shadow: 0 1px 2px 0 rgba(60, 64, 67, .3), 0 1px 3px 1px rgba(60, 64, 67, .15);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', 'PingFang SC', -apple-system, BlinkMacSystemFont, sans-serif;
+            line-height: 1.6;
+            color: var(--text-primary);
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4e9f2 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--primary-color) 0%, #1557b0 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            font-weight: 500;
+            margin-bottom: 10px;
+        }
+
+        .header .subtitle {
+            font-size: 1rem;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .section {
+            margin-bottom: 40px;
+        }
+
+        .section-title {
+            display: flex;
+            align-items: center;
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--primary-light);
+        }
+
+        .section-title .icon {
+            width: 32px;
+            height: 32px;
+            background: var(--primary-light);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 12px;
+            font-size: 1.2rem;
+        }
+
+        .intro-text {
+            font-size: 1rem;
+            color: var(--text-secondary);
+            line-height: 1.8;
+        }
+
+        .rule-card {
+            background: var(--bg-light);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 16px;
+            border-left: 4px solid var(--primary-color);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .rule-card:hover {
+            transform: translateX(5px);
+            box-shadow: var(--shadow);
+        }
+
+        .rule-card.warning {
+            border-left-color: var(--warning-color);
+        }
+
+        .rule-card.success {
+            border-left-color: var(--secondary-color);
+        }
+
+        .rule-card h3 {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+        }
+
+        .rule-card h3 .badge {
+            font-size: 0.75rem;
+            padding: 2px 8px;
+            border-radius: 12px;
+            margin-left: 10px;
+            font-weight: 500;
+        }
+
+        .rule-card h3 .badge.required {
+            background: #fce8e6;
+            color: var(--danger-color);
+        }
+
+        .rule-card h3 .badge.auto {
+            background: #e6f4ea;
+            color: var(--secondary-color);
+        }
+
+        .rule-card p {
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            line-height: 1.7;
+        }
+
+        .department-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .department-table th,
+        .department-table td {
+            padding: 14px 18px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .department-table th {
+            background: var(--primary-color);
+            color: white;
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+
+        .department-table tr:nth-child(even) {
+            background: var(--bg-light);
+        }
+
+        .department-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .department-table tr:hover {
+            background: var(--primary-light);
+        }
+
+        .type-tag {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 16px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .type-tag.comprehensive {
+            background: linear-gradient(135deg, #e8f0fe 0%, #e6f4ea 100%);
+            color: var(--primary-color);
+        }
+
+        .type-tag.pressure {
+            background: #fef7e0;
+            color: #b06000;
+        }
+
+        .type-tag.mechanical {
+            background: #e6f4ea;
+            color: #137333;
+        }
+
+        .draw-requirement {
+            display: flex;
+            gap: 8px;
+        }
+
+        .draw-requirement span {
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+        }
+
+        .draw-requirement .pressure {
+            background: #fef7e0;
+            color: #b06000;
+        }
+
+        .draw-requirement .mechanical {
+            background: #e6f4ea;
+            color: #137333;
+        }
+
+        .flow-diagram {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            padding: 30px;
+            background: var(--bg-light);
+            border-radius: 12px;
+        }
+
+        .flow-step {
+            background: white;
+            padding: 16px 24px;
+            border-radius: 10px;
+            box-shadow: var(--shadow);
+            text-align: center;
+            min-width: 140px;
+        }
+
+        .flow-step .step-num {
+            width: 28px;
+            height: 28px;
+            background: var(--primary-color);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 0.9rem;
+            margin: 0 auto 10px;
+        }
+
+        .flow-step .step-text {
+            font-size: 0.9rem;
+            color: var(--text-primary);
+        }
+
+        .flow-arrow {
+            font-size: 1.5rem;
+            color: var(--primary-color);
+        }
+
+        .algorithm-box {
+            background: #1e1e1e;
+            border-radius: 12px;
+            padding: 24px;
+            overflow-x: auto;
+        }
+
+        .algorithm-box code {
+            color: #9cdcfe;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.9rem;
+            line-height: 1.8;
+            white-space: pre;
+        }
+
+        .algorithm-box .comment {
+            color: #6a9955;
+        }
+
+        .algorithm-box .keyword {
+            color: #c586c0;
+        }
+
+        .algorithm-box .condition {
+            color: #dcdcaa;
+        }
+
+        .note-box {
+            background: linear-gradient(135deg, #fef7e0 0%, #fff8e1 100%);
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 20px;
+            display: flex;
+            gap: 16px;
+        }
+
+        .note-box .note-icon {
+            font-size: 1.5rem;
+            flex-shrink: 0;
+        }
+
+        .note-box .note-content {
+            flex: 1;
+        }
+
+        .note-box h4 {
+            font-size: 1rem;
+            color: #b06000;
+            margin-bottom: 8px;
+        }
+
+        .note-box p {
+            font-size: 0.95rem;
+            color: #5f6368;
+        }
+
+        .footer {
+            background: var(--bg-light);
+            padding: 30px 40px;
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .special-case {
+            margin-top: 20px;
+            padding: 20px;
+            background: linear-gradient(135deg, #e6f4ea 0%, #f0fff4 100%);
+            border-radius: 12px;
+        }
+
+        .special-case h4 {
+            color: var(--secondary-color);
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .special-case ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .special-case li {
+            padding: 8px 0;
+            padding-left: 24px;
+            position: relative;
+            color: var(--text-secondary);
+        }
+
+        .special-case li::before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: var(--secondary-color);
+            font-weight: bold;
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                padding: 30px 20px;
+            }
+
+            .header h1 {
+                font-size: 1.5rem;
+            }
+
+            .content {
+                padding: 20px;
+            }
+
+            .flow-diagram {
+                flex-direction: column;
+            }
+
+            .flow-arrow {
+                transform: rotate(90deg);
+            }
+
+            .department-table {
+                display: block;
+                overflow-x: auto;
+            }
+        }
+
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+            }
+
+            .container {
+                box-shadow: none;
+                border-radius: 0;
+            }
+
+            .rule-card:hover {
+                transform: none;
+                box-shadow: none;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>质量监督检查抽签规则</h1>
+            <p class="subtitle">宁夏回族自治区特种设备检验检测院</p>
+        </header>
+
+        <main class="content">
+            <!-- 规则概述 -->
+            <section class="section">
+                <h2 class="section-title">
+                    <span class="icon">📋</span>
+                    规则概述
+                </h2>
+                <p class="intro-text">
+                    为确保质量监督检查工作的公正性和随机性，本程序采用计算机随机抽签方式，从质量专责人员库中随机抽取检查人员。抽签过程遵循以下核心规则，确保检查工作的独立性和公平性。
+                </p>
+            </section>
+
+            <!-- 部门分类 -->
+            <section class="section">
+                <h2 class="section-title">
+                    <span class="icon">🏢</span>
+                    部门分类与抽取要求
+                </h2>
+                <table class="department-table">
+                    <thead>
+                        <tr>
+                            <th>类型</th>
+                            <th>部门名称</th>
+                            <th>需要抽取</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><span class="type-tag comprehensive">综合类</span></td>
+                            <td>宁东分院、石嘴山分院、吴忠分院、中卫分院、固原分院</td>
+                            <td>
+                                <div class="draw-requirement">
+                                    <span class="pressure">承压专责</span>
+                                    <span class="mechanical">机电专责</span>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><span class="type-tag pressure">承压类</span></td>
+                            <td>承压特种设备一部、承压特种设备二部、综合检验检测站</td>
+                            <td>
+                                <div class="draw-requirement">
+                                    <span class="pressure">承压专责</span>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><span class="type-tag mechanical">机电类</span></td>
+                            <td>机电特种设备一部、机电特种设备二部</td>
+                            <td>
+                                <div class="draw-requirement">
+                                    <span class="mechanical">机电专责</span>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+
+            <!-- 核心规则 -->
+            <section class="section">
+                <h2 class="section-title">
+                    <span class="icon">⚙️</span>
+                    核心抽签规则
+                </h2>
+
+                <div class="rule-card">
+                    <h3>
+                        规则一：专业类型匹配
+                        <span class="badge required">必须</span>
+                    </h3>
+                    <p>
+                        抽取的质量专责人员必须与被检查部门的专业类型相匹配。承压类部门只能抽取承压类专责，机电类部门只能抽取机电类专责。综合类部门需要同时抽取承压和机电两类专责。
+                    </p>
+                </div>
+
+                <div class="rule-card warning">
+                    <h3>
+                        规则二：同部门规避
+                        <span class="badge required">必须</span>
+                    </h3>
+                    <p>
+                        自动排除被检查部门的人员参与抽签。例如，当检查石嘴山分院时，石嘴山分院的所有质量专责人员将被排除在候选名单之外，以避免"自己检查自己"的情况。
+                    </p>
+                </div>
+
+                <div class="rule-card success">
+                    <h3>
+                        规则三：连续规避
+                        <span class="badge auto">自动</span>
+                    </h3>
+                    <p>
+                        同一人不会连续两次被抽中检查同一部门的同一专业类型。系统会自动查询历史记录，将上一次被抽中的人员排除在本次候选名单之外，以确保检查人员的轮换。
+                    </p>
+                </div>
+
+                <div class="rule-card">
+                    <h3>
+                        规则四：双人抽取（综合类部门）
+                        <span class="badge auto">自动</span>
+                    </h3>
+                    <p>
+                        当被检查部门为综合类部门时（如宁东分院、石嘴山分院等），系统将自动进行两轮抽签，分别抽取承压类专责和机电类专责各一名，两轮抽签相互独立，遵循相同的规避规则。
+                    </p>
+                </div>
+            </section>
+
+            <!-- 抽签流程 -->
+            <section class="section">
+                <h2 class="section-title">
+                    <span class="icon">🔄</span>
+                    抽签流程
+                </h2>
+                <div class="flow-diagram">
+                    <div class="flow-step">
+                        <div class="step-num">1</div>
+                        <div class="step-text">选择被检查部门</div>
+                    </div>
+                    <span class="flow-arrow">→</span>
+                    <div class="flow-step">
+                        <div class="step-num">2</div>
+                        <div class="step-text">筛选候选人</div>
+                    </div>
+                    <span class="flow-arrow">→</span>
+                    <div class="flow-step">
+                        <div class="step-num">3</div>
+                        <div class="step-text">开始抽签动画</div>
+                    </div>
+                    <span class="flow-arrow">→</span>
+                    <div class="flow-step">
+                        <div class="step-num">4</div>
+                        <div class="step-text">停止并显示结果</div>
+                    </div>
+                    <span class="flow-arrow">→</span>
+                    <div class="flow-step">
+                        <div class="step-num">5</div>
+                        <div class="step-text">保存抽签记录</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 候选人筛选算法 -->
+            <section class="section">
+                <h2 class="section-title">
+                    <span class="icon">🧮</span>
+                    候选人筛选算法
+                </h2>
+                <div class="algorithm-box">
+                    <code><span class="comment">// 获取符合条件的候选人列表</span>
+<span class="keyword">函数</span> <span class="condition">获取候选人</span>(所有专责, 被检查部门, 专业类型, 上次抽中人员):
+    候选人列表 = 空列表
+    
+    <span class="keyword">对于每一个</span> 专责 <span class="keyword">在</span> 所有专责 <span class="keyword">中</span>:
+        <span class="comment">// 条件1：专业类型必须匹配</span>
+        <span class="keyword">如果</span> 专责.专业类型 != 需要的专业类型:
+            <span class="keyword">跳过</span>
+        
+        <span class="comment">// 条件2：不能是被检查部门的人</span>
+        <span class="keyword">如果</span> 专责.所属部门 == 被检查部门:
+            <span class="keyword">跳过</span>
+        
+        <span class="comment">// 条件3：不能是上次抽中的人</span>
+        <span class="keyword">如果</span> 上次抽中人员 存在 <span class="keyword">且</span> 专责.ID == 上次抽中人员.ID:
+            <span class="keyword">跳过</span>
+        
+        <span class="comment">// 符合所有条件，加入候选名单</span>
+        候选人列表.<span class="condition">添加</span>(专责)
+    
+    <span class="keyword">返回</span> 候选人列表</code>
+                </div>
+
+                <div class="note-box">
+                    <span class="note-icon">💡</span>
+                    <div class="note-content">
+                        <h4>随机性保证</h4>
+                        <p>系统采用计算机伪随机数生成器，从符合条件的候选人列表中随机选取一人。每位符合条件的候选人被抽中的概率相等。</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 特殊情况处理 -->
+            <section class="section">
+                <h2 class="section-title">
+                    <span class="icon">⚠️</span>
+                    特殊情况处理
+                </h2>
+
+                <div class="special-case">
+                    <h4>📌 候选人不足时</h4>
+                    <ul>
+                        <li>若经过规避筛选后只剩一位候选人，系统会直接选中该候选人并给出提示</li>
+                        <li>若没有符合条件的候选人，系统会提示无法进行抽签，需要管理员添加更多专责人员</li>
+                        <li>连续规避仅针对上一次同部门同专业类型的抽签，不会因为其他抽签记录影响本次抽签</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- 数据存储 -->
+            <section class="section">
+                <h2 class="section-title">
+                    <span class="icon">💾</span>
+                    数据存储与追溯
+                </h2>
+                <p class="intro-text">
+                    每次抽签结果均自动保存至抽签记录库，包含以下信息：被检查部门、抽签时间、专业类型、抽中人员及其所属部门。历史记录可随时查询，支持导出为Excel表格，便于存档和追溯。
+                </p>
+            </section>
+        </main>
+
+        <footer class="footer">
+            <p>宁夏回族自治区特种设备检验检测院 · 质量监督检查抽签程序</p>
+            <p>文档版本：v1.0 · 更新日期：2025年</p>
+        </footer>
+    </div>
+</body>
+
+</html>

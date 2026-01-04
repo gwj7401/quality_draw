@@ -151,6 +151,23 @@ impl eframe::App for QualityDrawApp {
                     self.print_records();
                 }
                 
+                ui.separator();
+                
+                // 显示本轮已抽中数量
+                let round_count = self.main_panel.current_round_pressure_depts.len() 
+                    + self.main_panel.current_round_mechanical_depts.len();
+                if round_count > 0 {
+                    ui.label(format!("本轮已抽: {}", round_count));
+                }
+                
+                if ui.button("🔄 开始新一轮").clicked() {
+                    self.main_panel.current_round_pressure_depts.clear();
+                    self.main_panel.current_round_mechanical_depts.clear();
+                    self.main_panel.pressure_result = None;
+                    self.main_panel.mechanical_result = None;
+                    self.status_message = Some("已开始新一轮抽签".to_string());
+                }
+                
                 // 状态消息
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                     if let Some(msg) = &self.status_message {
