@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>宁夏特检院质量监督检查抽签程序 - 技术文档</title>
+    <style>
+        :root {
+            --primary-color: #667eea;
+            --secondary-color: #764ba2;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --border-color: #e2e8f0;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', 'PingFang SC', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-color);
+            color: var(--text-primary);
+            line-height: 1.8;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 40px 24px;
+        }
+
+        /* 头部 */
+        .header {
+            text-align: center;
+            margin-bottom: 48px;
+            padding: 40px;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            border-radius: 16px;
+            color: white;
+            box-shadow: 0 10px 40px rgba(102, 126, 234, 0.3);
+        }
+
+        .header h1 {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .header .subtitle {
+            font-size: 16px;
+            opacity: 0.9;
+        }
+
+        .header .version {
+            margin-top: 16px;
+            padding: 6px 16px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            display: inline-block;
+            font-size: 14px;
+        }
+
+        /* 目录 */
+        .toc {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 32px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        }
+
+        .toc h2 {
+            font-size: 18px;
+            margin-bottom: 16px;
+            color: var(--primary-color);
+        }
+
+        .toc ul {
+            list-style: none;
+        }
+
+        .toc li {
+            margin-bottom: 8px;
+        }
+
+        .toc a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .toc a:hover {
+            color: var(--primary-color);
+        }
+
+        /* 章节 */
+        .section {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 32px;
+            margin-bottom: 24px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        }
+
+        .section h2 {
+            font-size: 24px;
+            color: var(--primary-color);
+            margin-bottom: 24px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .section h3 {
+            font-size: 18px;
+            color: var(--text-primary);
+            margin: 24px 0 12px;
+        }
+
+        .section p {
+            margin-bottom: 16px;
+            color: var(--text-secondary);
+        }
+
+        /* 列表 */
+        ul,
+        ol {
+            margin: 16px 0 16px 24px;
+        }
+
+        li {
+            margin-bottom: 8px;
+            color: var(--text-secondary);
+        }
+
+        li strong {
+            color: var(--text-primary);
+        }
+
+        /* 表格 */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+
+        th,
+        td {
+            padding: 12px 16px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        th {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: white;
+            font-weight: 600;
+        }
+
+        th:first-child {
+            border-radius: 8px 0 0 0;
+        }
+
+        th:last-child {
+            border-radius: 0 8px 0 0;
+        }
+
+        tr:nth-child(even) {
+            background: #f8fafc;
+        }
+
+        tr:hover {
+            background: #f1f5f9;
+        }
+
+        /* 提示框 */
+        .alert {
+            padding: 16px 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+        }
+
+        .alert-info {
+            background: #eff6ff;
+            border-left: 4px solid var(--primary-color);
+        }
+
+        .alert-warning {
+            background: #fffbeb;
+            border-left: 4px solid var(--warning-color);
+        }
+
+        .alert-success {
+            background: #ecfdf5;
+            border-left: 4px solid var(--success-color);
+        }
+
+        .alert-icon {
+            font-size: 20px;
+        }
+
+        .alert-content {
+            flex: 1;
+        }
+
+        .alert-title {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        /* 代码块 */
+        .code-block {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 14px;
+            overflow-x: auto;
+            margin: 16px 0;
+        }
+
+        code {
+            background: #e2e8f0;
+            color: var(--primary-color);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.9em;
+        }
+
+        /* 流程图 */
+        .flowchart {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0;
+            margin: 24px 0;
+        }
+
+        .flow-step {
+            padding: 16px 32px;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: white;
+            border-radius: 8px;
+            font-weight: 500;
+            text-align: center;
+            min-width: 200px;
+        }
+
+        .flow-arrow {
+            font-size: 24px;
+            color: var(--text-secondary);
+            margin: 8px 0;
+        }
+
+        .flow-decision {
+            background: linear-gradient(135deg, var(--warning-color) 0%, #ea580c 100%);
+            transform: rotate(0deg);
+            padding: 12px 24px;
+        }
+
+        /* 标签 */
+        .tag {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+            margin-right: 8px;
+        }
+
+        .tag-pressure {
+            background: rgba(102, 126, 234, 0.15);
+            color: var(--primary-color);
+        }
+
+        .tag-mechanical {
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--success-color);
+        }
+
+        .tag-comprehensive {
+            background: rgba(240, 147, 251, 0.15);
+            color: #a855f7;
+        }
+
+        /* 技术栈图标 */
+        .tech-stack {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            margin: 20px 0;
+        }
+
+        .tech-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 20px;
+            background: #f8fafc;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+        }
+
+        .tech-icon {
+            font-size: 24px;
+        }
+
+        /* 图例 */
+        .legend {
+            display: flex;
+            gap: 24px;
+            flex-wrap: wrap;
+            margin: 16px 0;
+            padding: 16px;
+            background: #f8fafc;
+            border-radius: 8px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+        }
+
+        /* 页脚 */
+        .footer {
+            text-align: center;
+            padding: 32px;
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        /* 响应式 */
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px 16px;
+            }
+
+            .header {
+                padding: 24px;
+            }
+
+            .header h1 {
+                font-size: 24px;
+            }
+
+            .section {
+                padding: 20px;
+            }
+
+            table {
+                font-size: 14px;
+            }
+
+            th,
+            td {
+                padding: 8px 12px;
+            }
+        }
+
+        /* 打印优化 */
+        @media print {
+            .header {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            .section {
+                break-inside: avoid;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <!-- 头部 -->
+        <div class="header">
+            <h1>🎲 宁夏特检院质量监督检查抽签程序</h1>
+            <p class="subtitle">技术设计文档</p>
+            <span class="version">版本 1.0.0 | 2026年1月</span>
+        </div>
+
+        <!-- 目录 -->
+        <div class="toc">
+            <h2>📑 目录</h2>
+            <ul>
+                <li><a href="#overview">一、项目概述</a></li>
+                <li><a href="#rules">二、抽签规则详解</a></li>
+                <li><a href="#algorithm">三、核心算法</a></li>
+                <li><a href="#architecture">四、技术架构</a></li>
+                <li><a href="#data">五、数据结构</a></li>
+                <li><a href="#workflow">六、使用流程</a></li>
+                <li><a href="#faq">七、常见问题</a></li>
+            </ul>
+        </div>
+
+        <!-- 一、项目概述 -->
+        <div class="section" id="overview">
+            <h2>一、项目概述</h2>
+
+            <h3>1.1 项目背景</h3>
+            <p>本程序为宁夏特检院开发的质量监督检查抽签系统，用于在质量监督检查工作中，随机抽取检查部门，确保检查工作的公平性和随机性。</p>
+
+            <h3>1.2 功能特点</h3>
+            <ul>
+                <li><strong>公平随机：</strong>采用公平的随机算法，确保每个候选部门被抽中的概率相等</li>
+                <li><strong>智能回避：</strong>自动处理交叉回避规则，避免利益冲突</li>
+                <li><strong>双轮模式：</strong>综合类部门可同时抽取承压类和机电类两个检查部门</li>
+                <li><strong>历史记录：</strong>自动保存所有抽签记录，支持导出 Excel 和 PDF</li>
+                <li><strong>可视化转盘：</strong>华丽的转盘动画效果，增强仪式感</li>
+            </ul>
+
+            <h3>1.3 技术栈</h3>
+            <div class="tech-stack">
+                <div class="tech-item">
+                    <span class="tech-icon">🦀</span>
+                    <span>Rust (后端逻辑)</span>
+                </div>
+                <div class="tech-item">
+                    <span class="tech-icon">⚡</span>
+                    <span>Tauri (桌面应用框架)</span>
+                </div>
+                <div class="tech-item">
+                    <span class="tech-icon">🟢</span>
+                    <span>Vue 3 (前端界面)</span>
+                </div>
+                <div class="tech-item">
+                    <span class="tech-icon">📊</span>
+                    <span>TypeScript</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 二、抽签规则详解 -->
+        <div class="section" id="rules">
+            <h2>二、抽签规则详解</h2>
+
+            <div class="alert alert-info">
+                <span class="alert-icon">ℹ️</span>
+                <div class="alert-content">
+                    <div class="alert-title">核心原则</div>
+                    <div>每个被检部门由其他部门进行检查，通过随机抽签确定检查关系，确保公平公正。</div>
+                </div>
+            </div>
+
+            <h3>2.1 部门类型</h3>
+            <p>系统中的部门分为三种类型：</p>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>类型</th>
+                        <th>标签</th>
+                        <th>说明</th>
+                        <th>抽签要求</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>综合类</strong></td>
+                        <td><span class="tag tag-comprehensive">综合</span></td>
+                        <td>覆盖承压和机电两个专业的部门</td>
+                        <td>需要分别抽取承压类和机电类各一个检查部门</td>
+                    </tr>
+                    <tr>
+                        <td><strong>承压类</strong></td>
+                        <td><span class="tag tag-pressure">承压</span></td>
+                        <td>专门从事承压设备的部门</td>
+                        <td>只需抽取一个承压类检查部门</td>
+                    </tr>
+                    <tr>
+                        <td><strong>机电类</strong></td>
+                        <td><span class="tag tag-mechanical">机电</span></td>
+                        <td>专门从事机电设备的部门</td>
+                        <td>只需抽取一个机电类检查部门</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>2.2 候选部门筛选规则</h3>
+            <p>当为某个被检部门抽取检查部门时，候选部门需要满足以下条件：</p>
+
+            <div class="alert alert-warning">
+                <span class="alert-icon">⚠️</span>
+                <div class="alert-content">
+                    <div class="alert-title">筛选条件（必须全部满足）</div>
+                </div>
+            </div>
+
+            <ol>
+                <li><strong>专业匹配：</strong>候选部门的专业类型必须与所需检查类型匹配
+                    <ul>
+                        <li>抽取承压类检查员：候选部门必须是"综合类"或"承压类"</li>
+                        <li>抽取机电类检查员：候选部门必须是"综合类"或"机电类"</li>
+                    </ul>
+                </li>
+                <li><strong>自身排除：</strong>被检部门不能检查自己</li>
+                <li><strong>本轮排重：</strong>本轮已被抽中的部门不再参与后续抽签</li>
+                <li><strong>交叉回避：</strong>如果 A 部门本轮已抽中 B 部门来检查自己，那么 A 部门不能去检查 B 部门（避免双向检查的利益关联）</li>
+            </ol>
+
+            <h3>2.3 轮次概念</h3>
+            <p>"一轮"指的是一次完整的抽签周期。在同一轮内：</p>
+            <ul>
+                <li>每个部门作为检查方，最多只能被抽中一次（分专业类型）</li>
+                <li>点击"开始新一轮"可以重置本轮状态，开始新的抽签周期</li>
+                <li>历史记录会保留所有轮次的抽签结果</li>
+            </ul>
+
+            <h3>2.4 抽签示例</h3>
+            <div class="alert alert-success">
+                <span class="alert-icon">📋</span>
+                <div class="alert-content">
+                    <div class="alert-title">示例场景</div>
+                    <div>
+                        <p><strong>被检部门：</strong>固原分院（综合类）</p>
+                        <p><strong>需要抽取：</strong>承压类检查部门 + 机电类检查部门</p>
+                        <p><strong>假设本轮已发生：</strong></p>
+                        <ul style="margin: 8px 0 8px 20px;">
+                            <li>石嘴山分院 已被抽中检查 吴忠分院（承压类）</li>
+                            <li>固原分院 已被抽中检查 中卫分院（机电类）</li>
+                        </ul>
+                        <p><strong>承压类候选部门：</strong>所有综合类+承压类部门，排除：</p>
+                        <ul style="margin: 8px 0 8px 20px;">
+                            <li>固原分院（被检部门自身）</li>
+                            <li>石嘴山分院（本轮承压类已被抽中）</li>
+                            <li>中卫分院（固原检查过中卫，交叉回避）</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 三、核心算法 -->
+        <div class="section" id="algorithm">
+            <h2>三、核心算法</h2>
+
+            <h3>3.1 随机抽签算法</h3>
+            <p>系统采用公平的随机抽签算法，确保每个候选部门被选中的概率相等：</p>
+
+            <div class="code-block">
+                <pre>// 伪代码：随机抽签核心算法
+function executeDraw(targetDepartment, specialtyType):
+    // 1. 获取所有候选部门
+    candidates = filterCandidates(targetDepartment, specialtyType)
+    
+    // 2. 检查是否有候选
+    if candidates.isEmpty():
+        return Error("没有符合条件的候选部门")
+    
+    // 3. 公平随机选择
+    selected = randomChoice(candidates)  // 等概率选择
+    
+    // 4. 记录本轮抽中状态
+    currentRound[specialtyType].add(targetDepartment, selected)
+    
+    // 5. 保存历史记录
+    saveRecord(targetDepartment, selected, specialtyType)
+    
+    return selected</pre>
+            </div>
+
+            <h3>3.2 候选筛选算法</h3>
+            <div class="code-block">
+                <pre>// 伪代码：候选部门筛选
+function filterCandidates(targetDept, specialtyType):
+    allDepartments = getAllDepartments()
+    alreadySelected = getAlreadySelectedThisRound(specialtyType)
+    crossAvoidance = getCrossAvoidanceDepts(targetDept)
+    
+    candidates = []
+    for dept in allDepartments:
+        // 条件1：专业类型匹配
+        if not matchesSpecialty(dept, specialtyType):
+            continue
+        
+        // 条件2：排除自身
+        if dept.id == targetDept.id:
+            continue
+        
+        // 条件3：本轮未被抽中
+        if dept.id in alreadySelected:
+            continue
+        
+        // 条件4：交叉回避
+        if dept.id in crossAvoidance:
+            continue
+        
+        candidates.add(dept)
+    
+    return candidates</pre>
+            </div>
+
+            <h3>3.3 转盘动画算法</h3>
+            <p>转盘采用物理引擎模拟的动画效果：</p>
+            <ul>
+                <li><strong>加速阶段：</strong>线性加速至最大转速（acceleration = 1.2°/帧）</li>
+                <li><strong>匀速阶段：</strong>保持最大转速（maxSpeed = 25°/帧）</li>
+                <li><strong>惯性减速：</strong>指数衰减模拟真实惯性（friction = 0.985）</li>
+            </ul>
+
+            <div class="code-block">
+                <pre>// 惯性减速公式
+speed = speed × 0.985  // 每帧速度衰减 1.5%
+// 当 speed < 0.1 时停止</pre>
+            </div>
+        </div>
+
+        <!-- 四、技术架构 -->
+        <div class="section" id="architecture">
+            <h2>四、技术架构</h2>
+
+            <h3>4.1 整体架构</h3>
+            <div class="flowchart">
+                <div class="flow-step">🖥️ Vue 3 前端界面</div>
+                <div class="flow-arrow">↕</div>
+                <div class="flow-step">⚡ Tauri IPC 通信</div>
+                <div class="flow-arrow">↕</div>
+                <div class="flow-step">🦀 Rust 后端逻辑</div>
+                <div class="flow-arrow">↕</div>
+                <div class="flow-step">💾 JSON 本地存储</div>
+            </div>
+
+            <h3>4.2 核心模块</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>模块</th>
+                        <th>语言</th>
+                        <th>职责</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>commands.rs</code></td>
+                        <td>Rust</td>
+                        <td>Tauri 命令处理、业务逻辑、抽签算法</td>
+                    </tr>
+                    <tr>
+                        <td><code>models/</code></td>
+                        <td>Rust</td>
+                        <td>数据模型定义（部门、记录等）</td>
+                    </tr>
+                    <tr>
+                        <td><code>storage/</code></td>
+                        <td>Rust</td>
+                        <td>JSON 文件存储、数据持久化</td>
+                    </tr>
+                    <tr>
+                        <td><code>App.vue</code></td>
+                        <td>Vue 3</td>
+                        <td>主界面、转盘动画、用户交互</td>
+                    </tr>
+                    <tr>
+                        <td><code>types.ts</code></td>
+                        <td>TypeScript</td>
+                        <td>前端类型定义</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>4.3 数据存储</h3>
+            <p>程序使用 JSON 文件进行本地持久化存储，存储位置：</p>
+            <div class="code-block">
+                <pre>// Windows 用户目录
+C:\Users\{用户名}\AppData\Local\quality-draw-tauri\
+├── departments.json    # 部门信息
+└── records.json        # 抽签记录</pre>
+            </div>
+        </div>
+
+        <!-- 五、数据结构 -->
+        <div class="section" id="data">
+            <h2>五、数据结构</h2>
+
+            <h3>5.1 部门信息</h3>
+            <div class="code-block">
+                <pre>{
+    "id": "nd",
+    "name": "宁东分院",
+    "department_type": "Comprehensive"  // Comprehensive | Pressure | Mechanical
+}</pre>
+            </div>
+
+            <h3>5.2 抽签记录</h3>
+            <div class="code-block">
+                <pre>{
+    "id": "record_20260104_001",
+    "timestamp": "2026-01-04T11:30:00",
+    "target_department_id": "nd",
+    "target_department_name": "宁东分院",
+    "specialty_type": "Pressure",
+    "selected_specialist_id": "szs",
+    "selected_specialist_name": "石嘴山分院",
+    "selected_department_id": "szs",
+    "selected_department_name": "石嘴山分院"
+}</pre>
+            </div>
+
+            <h3>5.3 部门配置清单</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>部门名称</th>
+                        <th>类型</th>
+                        <th>承压资格</th>
+                        <th>机电资格</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>宁东分院</td>
+                        <td><span class="tag tag-comprehensive">综合</span></td>
+                        <td>✅</td>
+                        <td>✅</td>
+                    </tr>
+                    <tr>
+                        <td>石嘴山分院</td>
+                        <td><span class="tag tag-comprehensive">综合</span></td>
+                        <td>✅</td>
+                        <td>✅</td>
+                    </tr>
+                    <tr>
+                        <td>吴忠分院</td>
+                        <td><span class="tag tag-comprehensive">综合</span></td>
+                        <td>✅</td>
+                        <td>✅</td>
+                    </tr>
+                    <tr>
+                        <td>中卫分院</td>
+                        <td><span class="tag tag-comprehensive">综合</span></td>
+                        <td>✅</td>
+                        <td>✅</td>
+                    </tr>
+                    <tr>
+                        <td>固原分院</td>
+                        <td><span class="tag tag-comprehensive">综合</span></td>
+                        <td>✅</td>
+                        <td>✅</td>
+                    </tr>
+                    <tr>
+                        <td>承压特种设备一部</td>
+                        <td><span class="tag tag-pressure">承压</span></td>
+                        <td>✅</td>
+                        <td>❌</td>
+                    </tr>
+                    <tr>
+                        <td>承压特种设备二部</td>
+                        <td><span class="tag tag-pressure">承压</span></td>
+                        <td>✅</td>
+                        <td>❌</td>
+                    </tr>
+                    <tr>
+                        <td>综合检验检测站</td>
+                        <td><span class="tag tag-pressure">承压</span></td>
+                        <td>✅</td>
+                        <td>❌</td>
+                    </tr>
+                    <tr>
+                        <td>机电特种设备检验一部</td>
+                        <td><span class="tag tag-mechanical">机电</span></td>
+                        <td>❌</td>
+                        <td>✅</td>
+                    </tr>
+                    <tr>
+                        <td>机电特种设备检验二部</td>
+                        <td><span class="tag tag-mechanical">机电</span></td>
+                        <td>❌</td>
+                        <td>✅</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 六、使用流程 -->
+        <div class="section" id="workflow">
+            <h2>六、使用流程</h2>
+
+            <h3>6.1 抽签操作流程</h3>
+            <div class="flowchart">
+                <div class="flow-step">1️⃣ 选择被检部门</div>
+                <div class="flow-arrow">↓</div>
+                <div class="flow-step">2️⃣ 点击"开始抽签"</div>
+                <div class="flow-arrow">↓</div>
+                <div class="flow-step">3️⃣ 点击"开始转动"</div>
+                <div class="flow-arrow">↓</div>
+                <div class="flow-step">4️⃣ 观看转盘动画</div>
+                <div class="flow-arrow">↓</div>
+                <div class="flow-step">5️⃣ 点击"停止抽签"</div>
+                <div class="flow-arrow">↓</div>
+                <div class="flow-step">6️⃣ 查看抽签结果</div>
+            </div>
+
+            <h3>6.2 导出记录</h3>
+            <ol>
+                <li>点击顶部菜单"历史记录"</li>
+                <li>可选择"导出 Excel"或"导出 PDF"</li>
+                <li>文件自动保存到桌面</li>
+            </ol>
+
+            <h3>6.3 开始新一轮</h3>
+            <p>当需要开始新一轮抽签时（如新的检查周期开始）：</p>
+            <ol>
+                <li>点击"开始新一轮"按钮</li>
+                <li>本轮的所有抽中状态将被清空</li>
+                <li>所有部门重新进入候选池</li>
+                <li>历史记录保留不变</li>
+            </ol>
+        </div>
+
+        <!-- 七、常见问题 -->
+        <div class="section" id="faq">
+            <h2>七、常见问题</h2>
+
+            <h3>Q1: 为什么转盘上没有显示部门名称？</h3>
+            <p><strong>A：</strong>这种情况发生在候选部门只剩 1-2 个时。系统已做特殊处理，会显示完整圆盘并在中心显示部门名称。如果出现空白转盘，请检查候选部门是否为空。</p>
+
+            <h3>Q2: 为什么某个部门不在候选列表中？</h3>
+            <p><strong>A：</strong>可能的原因：</p>
+            <ul>
+                <li>该部门是被检部门自身</li>
+                <li>该部门本轮已被其他部门抽中</li>
+                <li>交叉回避规则：被检部门曾检查过该候选部门</li>
+                <li>专业类型不匹配</li>
+            </ul>
+
+            <h3>Q3: 如何清空所有历史记录？</h3>
+            <p><strong>A：</strong>在"历史记录"页面，点击"清空记录"按钮。此操作不可恢复，请谨慎操作。</p>
+
+            <h3>Q4: 导出的文件保存在哪里？</h3>
+            <p><strong>A：</strong>Excel 和 PDF 文件默认保存到用户桌面，文件名格式为：<code>抽签记录_YYYYMMDD_HHMMSS.xlsx/pdf</code></p>
+
+            <h3>Q5: 程序数据保存在哪里？</h3>
+            <p><strong>A：</strong>数据保存在本地应用数据目录：<code>C:\Users\{用户名}\AppData\Local\quality-draw-tauri\</code>，卸载程序不会自动删除这些数据。
+            </p>
+        </div>
+
+        <!-- 页脚 -->
+        <div class="footer">
+            <p>© 2026 宁夏特检院 | 质量监督检查抽签程序 v1.0.0</p>
+            <p>技术支持文档 | 最后更新：2026年1月4日</p>
+        </div>
+    </div>
+</body>
+
+</html>

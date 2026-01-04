@@ -6,8 +6,8 @@ authors = ["宁夏特检院"]
 description = "宁夏特检院质量监督检查抽签程序"
 
 [dependencies]
-# GUI框架 - 使用wgpu后端（更好的驱动兼容性）
-eframe = { version = "0.30", default-features = false, features = ["default_fonts", "wgpu", "wayland", "x11"] }
+# GUI框架 - 使用wgpu后端，支持D3D12 WARP软件渲染
+eframe = { version = "0.30", default-features = false, features = ["default_fonts", "wgpu"] }
 
 # 序列化
 serde = { version = "1.0", features = ["derive"] }

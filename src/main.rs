@@ -37,7 +37,6 @@ fn main() -> eframe::Result<()> {
     // 记录启动日志
     log_message("程序启动...");
     
-    // 设置中文字体
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
             .with_inner_size([1024.0, 700.0])
